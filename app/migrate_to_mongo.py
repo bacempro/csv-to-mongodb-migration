@@ -10,7 +10,7 @@ Adds:
   - Idempotent bulk upserts (no duplicates on reruns).
   - Optional .env support.
 
-Natural key (per your spec): (name, gender, blood_type, date_of_admission, hospital)
+Natural key : (name, gender, blood_type, date_of_admission, hospital)
 
 Usage (examples):
   # One-time: create index and upsert
