@@ -132,6 +132,64 @@ python app/migrate_to_mongo.py --csv /chemin/healthcare_dataset.csv --no-upsert
 
 ## 🐳 Docker & Docker Compose (solution complète + permissions minimales)
 
+### 🔐 Authentification & rôles utilisateurs (RBAC)
+
+Cette solution utilise l’authentification native MongoDB (username/password) et une séparation claire des comptes :
+
+1. **Compte “root” (administration)**  
+   Créé automatiquement au *premier démarrage* par l’image officielle MongoDB via :
+   - `MONGO_INITDB_ROOT_USERNAME`
+   - `MONGO_INITDB_ROOT_PASSWORD`  
+   Ce compte sert uniquement aux opérations d’administration (debug, maintenance). **Il n’est pas utilisé par le script de migration.**
+
+2. **Compte “app” (migration / application) — *least privilege***  
+   Créé au *premier démarrage* par le script `docker/mongo-init/001-create-app-user.sh` dans la base `MONGO_DB`.  
+   Ce compte est celui utilisé par le conteneur `loader` pour exécuter la migration.
+
+#### Rôles attribués au compte applicatif
+
+Le compte `MONGO_APP_USER` reçoit (sur la base `MONGO_DB`) :
+
+- `readWrite` : permet d’insérer et de mettre à jour des documents (nécessaire au mode **upsert**)
+- `dbAdmin` : permet la gestion des index (nécessaire à `--create-indexes`)
+
+> Variante plus stricte (optionnelle) : créer un rôle custom limité (ex. `createIndex` + opérations d’écriture) au lieu de `dbAdmin`.  
+> Pour un projet pédagogique, `dbAdmin` **uniquement sur la base applicative** reste acceptable et simple à expliquer.
+
+#### Chaîne de connexion utilisée par le loader
+
+Dans `docker-compose.yml`, le loader se connecte à MongoDB via le nom de service Docker `mongo` (DNS interne Compose) :
+
+```
+mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=${MONGO_DB}
+```
+
+- `authSource=${MONGO_DB}` : indique à MongoDB où authentifier l’utilisateur (la base applicative).
+- On évite d’utiliser le compte root afin de respecter le principe du **moindre privilège**.
+
+#### Où sont stockés les secrets ?
+
+- Les variables sont centralisées dans `.env` (pour l’exécution locale **et** via Docker Compose).
+- Recommandation Git : versionner un `.env.example` et ignorer `.env` (car contient des secrets).
+
+#### Vérification rapide (démonstration)
+
+Se connecter en root (admin) :
+```bash
+docker exec -it mongo mongosh -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin
+```
+
+Lister les utilisateurs de la base applicative :
+```javascript
+use healthcare
+db.getUsers()
+```
+
+Se connecter avec l’utilisateur applicatif :
+```bash
+docker exec -it mongo mongosh -u "$MONGO_APP_USER" -p "$MONGO_APP_PASSWORD" --authenticationDatabase "$MONGO_DB" "$MONGO_DB"
+```
+
 ### Arborescence
 
 ```
