@@ -1,2 +1,16 @@
+# Secrets / environment
 .env
 *.env
+!.env.example
+
+# Python caches / artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Office lock files
+*.~lock.*

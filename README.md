@@ -3,6 +3,16 @@
 Ce dépôt contient un script Python qui migre un dataset de santé (CSV) vers MongoDB.
 Il applique des **transformations contrôlées**, crée un **index composé unique** pour assurer l'**idempotence**, propose un mode **upsert** pour réexécuter la migration sans doublons, et génère un **rapport d’exécution** persistant.
 
+![Architecture](docs/architecture.png)
+
+---
+
+## 📊 Données
+
+Le jeu de données est le **« Healthcare Dataset »** public de Kaggle : des données **entièrement synthétiques** (noms et valeurs fictifs), sans aucune PII réelle — utilisées ici uniquement à des fins de démonstration technique.
+
+Un **échantillon** de quelques lignes est versionné dans `data/healthcare_dataset_subset.csv` pour permettre de lancer le projet immédiatement. Le dataset complet (~55 500 lignes) est disponible sur Kaggle ; pour l'utiliser, placez-le dans `data/` et pointez `CSV_FILENAME` dessus dans `.env`.
+
 ---
 
 ## 🎯 Objectif
@@ -103,14 +113,14 @@ pip install -r requirements.txt
 1. **Prévisualisation (dry-run)**
 
 ```bash
-python app/migrate_to_mongo.py --csv /chemin/healthcare_dataset.csv --dry-run
+python app/migrate_to_mongo.py --csv ./data/healthcare_dataset_subset.csv --dry-run
 ```
 
 2. **Création de l’index + upsert**
 
 ```bash
 python app/migrate_to_mongo.py \
-  --csv /chemin/healthcare_dataset.csv \
+  --csv ./data/healthcare_dataset_subset.csv \
   --mongo-uri "mongodb://localhost:27017" \
   --db healthcare --collection patients \
   --create-indexes --upsert
@@ -119,13 +129,13 @@ python app/migrate_to_mongo.py \
 3. **Réexécuter en toute sécurité (idempotent)**
 
 ```bash
-python app/migrate_to_mongo.py --csv /chemin/healthcare_dataset.csv --upsert
+python app/migrate_to_mongo.py --csv ./data/healthcare_dataset_subset.csv --upsert
 ```
 
 4. **Insérer sans upsert (non recommandé ici)**
 
 ```bash
-python app/migrate_to_mongo.py --csv /chemin/healthcare_dataset.csv --no-upsert
+python app/migrate_to_mongo.py --csv ./data/healthcare_dataset_subset.csv --no-upsert
 ```
 
 ---
@@ -193,11 +203,14 @@ docker exec -it mongo mongosh -u "$MONGO_APP_USER" -p "$MONGO_APP_PASSWORD" --au
 ### Arborescence
 
 ```
-healthcare-mongo-migration/
-├─ .env
+csv-to-mongodb-migration/
+├─ .env.example                   # modèle de configuration (copier en .env)
+├─ .gitignore
 ├─ docker-compose.yml
 ├─ data/                          # vos CSV (montés en lecture seule)
 │  └─ healthcare_dataset_subset.csv
+├─ docs/
+│  └─ architecture.png
 ├─ docker/
 │  └─ mongo-init/
 │     └─ 001-create-app-user.sh   # création utilisateur applicatif (RBAC)
